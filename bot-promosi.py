@@ -8,9 +8,9 @@ import telebot
 # =========================
 # Environment Variables
 # =========================
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-TARGET_CHAT_ID = os.environ.get("TARGET_CHAT_ID")
-WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # Contoh: https://domain.com/webhook
+BOT_TOKEN = os.environ.get("8429083091:AAGCrBV0r92NIPH2CbfWzJ7q1ItEcnJi-9s")
+TARGET_CHAT_ID = os.environ.get("1002604922644")
+WEBHOOK_URL = os.environ.get("https://api.render.com/deploy/srv-d3uabore5dus739h75i0?key=YpVXpzY2KO8")  # Contoh: https://domain.com/webhook
 
 if not BOT_TOKEN or not TARGET_CHAT_ID or not WEBHOOK_URL:
     print("⚠️ BOT_TOKEN, TARGET_CHAT_ID, atau WEBHOOK_URL belum di-set!")
@@ -337,3 +337,4 @@ if __name__ == "__main__":
     
     # Run Flask server
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
