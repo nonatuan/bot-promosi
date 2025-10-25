@@ -1,22 +1,24 @@
 import os
-import re
+import json
 import time
 import threading
+from flask import Flask, request
 import telebot
-import json
 
 # =========================
 # Environment Variables
 # =========================
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 TARGET_CHAT_ID = os.environ.get("TARGET_CHAT_ID")
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # Contoh: https://domain.com/webhook
 
-if not BOT_TOKEN or not TARGET_CHAT_ID:
-    print("⚠️ BOT_TOKEN atau TARGET_CHAT_ID belum di-set di Environment Variables!")
+if not BOT_TOKEN or not TARGET_CHAT_ID or not WEBHOOK_URL:
+    print("⚠️ BOT_TOKEN, TARGET_CHAT_ID, atau WEBHOOK_URL belum di-set!")
     exit(1)
 
 TARGET_CHAT_ID = int(TARGET_CHAT_ID)
 bot = telebot.TeleBot(BOT_TOKEN)
+app = Flask(__name__)
 
 # =========================
 # Escape MarkdownV2 Aman
@@ -28,7 +30,7 @@ def escape_md2(text):
     return text
 
 # =========================
-# DAFTAR PROMO LENGKAP
+# PROMO LIST
 # =========================
 PROMO_LIST = [
     {
@@ -242,7 +244,7 @@ Hadiah utama:
 ]
 
 # =========================
-# File simpan index terakhir
+# Index auto promo
 # =========================
 INDEX_FILE = "last_index.json"
 
@@ -257,7 +259,7 @@ def save_index(index):
         json.dump({"index": index}, f)
 
 # =========================
-# Auto Kirim Promo Stabil
+# Auto kirim promo
 # =========================
 INTERVAL = 600  # 10 menit
 
@@ -312,9 +314,26 @@ def get_id(message):
     bot.reply_to(message, f"🆔 ID grup ini: `{message.chat.id}`", parse_mode="MarkdownV2")
 
 # =========================
-# Jalankan Bot & Auto Promo
+# Webhook endpoint
 # =========================
-threading.Thread(target=auto_kirim_bergilir, daemon=True).start()
-print("🤖 Bot promosi aktif. Akan kirim 1 promo setiap 10 menit.")
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    json_str = request.get_data().decode("utf-8")
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return "!", 200
 
-bot.infinity_polling(timeout=60, long_polling_timeout=60)
+# =========================
+# Jalankan webhook
+# =========================
+if __name__ == "__main__":
+    # Set webhook Telegram
+    bot.remove_webhook()
+    bot.set_webhook(url=f"{WEBHOOK_URL}/webhook")
+    print("🤖 Webhook aktif. Bot siap menerima command.")
+    
+    # Start auto promo thread
+    threading.Thread(target=auto_kirim_bergilir, daemon=True).start()
+    
+    # Run Flask server
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
