@@ -1,20 +1,32 @@
-import telebot
-import threading
-import time
+import os
 import re
+import time
+import threading
+import telebot
+from flask import Flask
 
-# === TOKEN BOT ===
-BOT_TOKEN = "8429083091:AAFmScTnirciE7sY4TPRK_OW-qKxiFzwvkU"
+# =========================
+# Environment Variables
+# =========================
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+TARGET_CHAT_ID = os.environ.get("TARGET_CHAT_ID")
+
+if not BOT_TOKEN or not TARGET_CHAT_ID:
+    print("⚠️ BOT_TOKEN atau TARGET_CHAT_ID belum di-set di Environment Variables!")
+    exit(1)
+
+TARGET_CHAT_ID = int(TARGET_CHAT_ID)
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# === ID GRUP ===
-TARGET_CHAT_ID = -1002604922644  # ganti dengan ID grup kamu
-
-# === Fungsi escape otomatis MarkdownV2 (biar bisa bold & italic) ===
+# =========================
+# Escape MarkdownV2
+# =========================
 def escape_md2(text):
-    return re.sub(r'([`\[\]\(\)~>#+\-=|{}\.!])', r'\\\1', text)
+    return re.sub(r'([_*[\]()~`>#+\-=|{}.!])', r'\\\1', text)
 
-# === DAFTAR PROMOSI (GAMBAR + CAPTION) ===
+# =========================
+# DAFTAR PROMO
+# =========================
 PROMO_LIST = [
     {
         "photo": "https://assetsmac777.com/uploads/gen777/GARANSI100_.jpg",
@@ -226,64 +238,80 @@ Hadiah utama:
     },
 ]
 
-# === INTERVAL 15 MENIT ===
-INTERVAL = 900  # 15 menit = 900 detik
-JUMLAH_PROMO_PER_INTERVAL = 2  # kirim 2 promo setiap 15 menit
+INTERVAL = 600  # 10 menit
+JUMLAH_PROMO_PER_INTERVAL = 1
 
-# === Fungsi kirim promo bergilir ===
+# =========================
+# Auto Kirim Promo
+# =========================
 def auto_kirim_bergilir():
     index = 0
     while True:
-        print("[⏰] Mengirim promo batch baru...")
         for _ in range(JUMLAH_PROMO_PER_INTERVAL):
             promo = PROMO_LIST[index]
             try:
                 bot.send_photo(
                     TARGET_CHAT_ID,
-                    photo=promo["photo"],
+                    promo["photo"],
                     caption=escape_md2(promo["caption"]),
                     parse_mode="MarkdownV2"
                 )
                 print(f"[✅] Terkirim promo ke-{index+1}")
-                time.sleep(3)  # jeda antar kiriman biar nggak ke-rate-limit
             except Exception as e:
                 print(f"[⚠️] Gagal kirim promo ke-{index+1}: {e}")
             index = (index + 1) % len(PROMO_LIST)
-        print(f"[🕒] Menunggu 15 menit sebelum batch berikutnya...\n")
         time.sleep(INTERVAL)
 
-# === Jalankan auto promo di background ===
-threading.Thread(target=auto_kirim_bergilir, daemon=True).start()
+# =========================
+# Flask Health Check
+# =========================
+app = Flask(__name__)
 
-# === Command Telegram ===
+@app.route("/healthz")
+def healthz():
+    return "OK", 200
+
+def run_flask():
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+
+threading.Thread(target=run_flask, daemon=True).start()
+
+# =========================
+# Command Telegram
+# =========================
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.reply_to(
         message,
-        "🤖 Bot promosi aktif!\nAkan kirim *2 promo setiap 15 menit*.\nKetik /kirim untuk kirim semua promo sekaligus.",
+        "🤖 Bot promosi aktif!\nAkan kirim *1 promo setiap 10 menit*.\nKetik /kirim untuk kirim semua promo sekaligus.",
         parse_mode="MarkdownV2"
     )
 
 @bot.message_handler(commands=['kirim'])
 def manual_send(message):
     bot.reply_to(message, "📢 Mengirim semua promosi sekarang...")
-    for promo in PROMO_LIST:
+    for idx, promo in enumerate(PROMO_LIST, start=1):
         try:
             bot.send_photo(
                 TARGET_CHAT_ID,
-                photo=promo["photo"],
+                promo["photo"],
                 caption=escape_md2(promo["caption"]),
                 parse_mode="MarkdownV2"
             )
+            print(f"[✅] Manual terkirim promo ke-{idx}")
             time.sleep(2)
         except Exception as e:
-            bot.send_message(message.chat.id, f"⚠️ Gagal kirim promo: {e}")
+            bot.send_message(message.chat.id, f"⚠️ Gagal kirim promo ke-{idx}: {e}")
     bot.reply_to(message, "✅ Semua promosi sudah terkirim!")
 
 @bot.message_handler(commands=['id'])
 def get_id(message):
     bot.reply_to(message, f"🆔 ID grup ini: `{message.chat.id}`", parse_mode="MarkdownV2")
 
-# === Jalankan bot ===
-print("🤖 Bot promosi aktif. Akan kirim 2 promo setiap 15 menit.")
-bot.polling()
+# =========================
+# Jalankan Bot & Auto Promo
+# =========================
+threading.Thread(target=auto_kirim_bergilir, daemon=True).start()
+print("🤖 Bot promosi aktif. Akan kirim 1 promo setiap 10 menit.")
+bot.infinity_polling()
