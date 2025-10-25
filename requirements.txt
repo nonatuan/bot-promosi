@@ -1,12 +1,4 @@
-# =========================
-# Python Telegram Bot & HTTP Server Dependencies
-# =========================
-
-pyTelegramBotAPI==4.29.1
 Flask==2.3.3
+pyTelegramBotAPI==4.29.1
+gunicorn==21.2.0
 requests==2.32.5
-
-# =========================
-# Optional / Recommended
-# =========================
-gunicorn==21.2.0      # Untuk deployment di Render / VPS production
