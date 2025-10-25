@@ -262,21 +262,6 @@ def auto_kirim_bergilir():
         time.sleep(INTERVAL)
 
 # =========================
-# Flask Health Check
-# =========================
-app = Flask(__name__)
-
-@app.route("/healthz")
-def healthz():
-    return "OK", 200
-
-def run_flask():
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
-
-threading.Thread(target=run_flask, daemon=True).start()
-
-# =========================
 # Command Telegram
 # =========================
 @bot.message_handler(commands=['start'])
@@ -314,4 +299,5 @@ def get_id(message):
 threading.Thread(target=auto_kirim_bergilir, daemon=True).start()
 print("🤖 Bot promosi aktif. Akan kirim 1 promo setiap 10 menit.")
 bot.infinity_polling()
+
 
