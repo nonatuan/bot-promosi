@@ -3,7 +3,6 @@ import re
 import time
 import threading
 import telebot
-from flask import Flask
 
 # =========================
 # Environment Variables
@@ -315,3 +314,4 @@ def get_id(message):
 threading.Thread(target=auto_kirim_bergilir, daemon=True).start()
 print("🤖 Bot promosi aktif. Akan kirim 1 promo setiap 10 menit.")
 bot.infinity_polling()
+
