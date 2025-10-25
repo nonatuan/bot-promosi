@@ -3,6 +3,7 @@ import re
 import time
 import threading
 import telebot
+import json
 
 # =========================
 # Environment Variables
@@ -18,13 +19,16 @@ TARGET_CHAT_ID = int(TARGET_CHAT_ID)
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # =========================
-# Escape MarkdownV2
+# Escape MarkdownV2 Aman
 # =========================
 def escape_md2(text):
-    return re.sub(r'([_*[\]()~`>#+\-=|{}.!])', r'\\\1', text)
+    special_chars = r'\_*[]()~`>#+-=|{}.!'
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
 
 # =========================
-# DAFTAR PROMO
+# DAFTAR PROMO LENGKAP
 # =========================
 PROMO_LIST = [
     {
@@ -237,28 +241,42 @@ Hadiah utama:
     },
 ]
 
-INTERVAL = 600  # 10 menit
-JUMLAH_PROMO_PER_INTERVAL = 1
+# =========================
+# File simpan index terakhir
+# =========================
+INDEX_FILE = "last_index.json"
+
+def load_index():
+    if os.path.exists(INDEX_FILE):
+        with open(INDEX_FILE, "r") as f:
+            return json.load(f).get("index", 0)
+    return 0
+
+def save_index(index):
+    with open(INDEX_FILE, "w") as f:
+        json.dump({"index": index}, f)
 
 # =========================
-# Auto Kirim Promo
+# Auto Kirim Promo Stabil
 # =========================
+INTERVAL = 600  # 10 menit
+
 def auto_kirim_bergilir():
-    index = 0
+    index = load_index()
     while True:
-        for _ in range(JUMLAH_PROMO_PER_INTERVAL):
+        try:
             promo = PROMO_LIST[index]
-            try:
-                bot.send_photo(
-                    TARGET_CHAT_ID,
-                    promo["photo"],
-                    caption=escape_md2(promo["caption"]),
-                    parse_mode="MarkdownV2"
-                )
-                print(f"[✅] Terkirim promo ke-{index+1}")
-            except Exception as e:
-                print(f"[⚠️] Gagal kirim promo ke-{index+1}: {e}")
+            bot.send_photo(
+                TARGET_CHAT_ID,
+                promo["photo"],
+                caption=escape_md2(promo["caption"]),
+                parse_mode="MarkdownV2"
+            )
+            print(f"[✅] Terkirim promo ke-{index+1}")
             index = (index + 1) % len(PROMO_LIST)
+            save_index(index)
+        except Exception as e:
+            print(f"[⚠️] Gagal kirim promo ke-{index+1}: {e}")
         time.sleep(INTERVAL)
 
 # =========================
@@ -298,6 +316,5 @@ def get_id(message):
 # =========================
 threading.Thread(target=auto_kirim_bergilir, daemon=True).start()
 print("🤖 Bot promosi aktif. Akan kirim 1 promo setiap 10 menit.")
-bot.infinity_polling()
 
-
+bot.infinity_polling(timeout=60, long_polling_timeout=60)
