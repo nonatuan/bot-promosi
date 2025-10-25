@@ -9,7 +9,7 @@ from flask import Flask, request
 # Environment Variables
 # =========================
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-TARGET_CHAT_ID = int(os.environ.get("TARGET_CHAT_ID", 0))
+TARGET_CHAT_ID = int(os.environ.get("-1002604922644", 0))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")  # Contoh: https://bot-promosi.onrender.com/webhook
 
 if not BOT_TOKEN or not TARGET_CHAT_ID or not WEBHOOK_URL:
@@ -306,3 +306,4 @@ def set_webhook():
 # =========================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
